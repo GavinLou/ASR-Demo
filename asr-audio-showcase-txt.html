@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASR 錄音展示頁</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f7f6f2;
+      --surface: #fbfaf7;
+      --surface-2: #f2f0ea;
+      --text: #28251d;
+      --muted: #68645d;
+      --primary: #01696f;
+      --primary-2: #0c4e54;
+      --radius: 16px;
+      --shadow: 0 8px 24px rgba(26, 24, 19, 0.08);
+      --font: 'Noto Sans TC', sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: linear-gradient(180deg, var(--bg), var(--surface));
+      color: var(--text);
+      line-height: 1.55;
+    }
+    .page { max-width: 1680px; margin: 0 auto; padding: 24px 20px 64px; }
+    .header {
+      display: flex; justify-content: space-between; gap: 16px; align-items: center;
+      padding-bottom: 18px; border-bottom: 1px solid rgba(40, 37, 29, 0.08); margin-bottom: 18px;
+    }
+    .header h1 { margin: 0; font-size: 1.35rem; }
+    .header p { margin: 4px 0 0; color: var(--muted); }
+    .page-note { margin: 0 0 18px; color: var(--muted); font-size: 0.95rem; }
+    .samples { display: grid; gap: 18px; }
+    .sample-card {
+      background: rgba(255,255,255,0.56);
+      border: 1px solid rgba(40, 37, 29, 0.10);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+    .sample-top {
+      display: flex; justify-content: space-between; align-items: start; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+    }
+    .sample-title h2 { margin: 0; font-size: 1.14rem; }
+    .sample-title p { margin: 4px 0 0; color: var(--muted); font-size: 0.92rem; }
+    .pill {
+      display: inline-flex; align-items: center; padding: 5px 11px; border-radius: 999px;
+      background: rgba(1,105,111,0.10); color: var(--primary); font-size: 0.82rem; font-weight: 700; white-space: nowrap;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(340px, 0.82fr) minmax(720px, 1.18fr);
+      gap: 14px;
+      align-items: start;
+    }
+    .panel {
+      background: var(--surface);
+      border: 1px solid rgba(40, 37, 29, 0.08);
+      border-radius: 14px;
+      padding: 12px;
+    }
+    .panel h3 {
+      margin: 0 0 10px; font-size: 0.92rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
+    }
+    .segment-list {
+      display: grid; gap: 8px; max-height: 300px; overflow-y: auto; padding-right: 4px;
+    }
+    .segment-btn {
+      width: 100%;
+      border: 1px solid rgba(40, 37, 29, 0.12);
+      background: var(--surface-2);
+      border-radius: 12px;
+      padding: 10px 12px;
+      text-align: left;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+      font: inherit;
+    }
+    .segment-btn:hover { border-color: rgba(1,105,111,0.35); }
+    .segment-btn.active {
+      background: rgba(1,105,111,0.12);
+      border-color: rgba(1,105,111,0.50);
+      color: var(--primary);
+    }
+    .segment-btn small { color: var(--muted); white-space: nowrap; }
+    .player-box {
+      display: grid; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(40, 37, 29, 0.08);
+    }
+    .player-head {
+      display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center;
+    }
+    .player-head strong { font-size: 0.94rem; }
+    .player-head span { color: var(--muted); font-size: 0.9rem; }
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .btn {
+      min-height: 40px; padding: 0 14px; border-radius: 999px;
+      border: 1px solid rgba(40, 37, 29, 0.12); background: var(--surface-2); font: inherit; cursor: pointer;
+    }
+    .btn-primary { background: var(--primary); color: white; border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-2); border-color: var(--primary-2); }
+    .wave-wrap {
+      border: 1px solid rgba(40, 37, 29, 0.08); background: #fff; border-radius: 14px; padding: 10px;
+    }
+    .waveform { min-height: 78px; }
+    .text-grid {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px;
+    }
+    .text-box {
+      background: var(--surface);
+      border: 1px solid rgba(40, 37, 29, 0.08);
+      border-radius: 14px;
+      padding: 12px;
+      min-height: 200px;
+      max-height: 340px;
+      overflow-y: auto;
+    }
+    .text-box h4 {
+      margin: 0 0 8px; font-size: 0.9rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
+    }
+    .text-box pre {
+      margin: 0; white-space: pre-wrap; word-break: break-word; font-family: inherit; font-size: 0.93rem; line-height: 1.7;
+    }
+    .loading { color: var(--muted); }
+    .error { color: #b00020; }
+    @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
+    @media (max-width: 860px) { .text-grid { grid-template-columns: 1fr; } .segment-list { max-height: 260px; } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <div>
+        <h1>ASR 錄音展示頁</h1>
+      </div>
+      <div class="pill">Static Demo</div>
+    </header>
+
+    <main class="samples" id="samples"></main>
+  </div>
+
+  <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
+  <script>
+    const samples = [
+      {
+        key: 'native',
+        title: '原生語音',
+        badge: 'Original recording',
+        fullTextFile: './text/test1.txt',
+        asrTextFile: './text/test_no_speaker.txt',
+        segments: [
+          { label: '片段 1', audio: './native_chunks/native_000.wav' },
+          { label: '片段 2', audio: './native_chunks/native_001.wav' },
+          { label: '片段 3', audio: './native_chunks/native_002.wav' },
+          { label: '片段 4', audio: './native_chunks/native_003.wav' },
+          { label: '片段 5', audio: './native_chunks/native_004.wav' },
+          { label: '片段 6', audio: './native_chunks/native_005.wav' },
+          { label: '片段 7', audio: './native_chunks/native_006.wav' },
+          { label: '片段 8', audio: './native_chunks/native_007.wav' },
+          { label: '片段 9', audio: './native_chunks/native_008.wav' },
+          { label: '片段 10', audio: './native_chunks/native_009.wav' },
+          { label: '片段 11', audio: './native_chunks/native_010.wav' },
+          { label: '片段 12', audio: './native_chunks/native_011.wav' },
+          { label: '片段 13', audio: './native_chunks/native_012.wav' },
+          { label: '片段 14', audio: './native_chunks/native_013.wav' },
+          { label: '片段 15', audio: './native_chunks/native_014.wav' },
+          { label: '片段 16', audio: './native_chunks/native_015.wav' },
+          { label: '片段 17', audio: './native_chunks/native_016.wav' },
+          { label: '片段 18', audio: './native_chunks/native_017.wav' },
+          { label: '片段 19', audio: './native_chunks/native_018.wav' },
+          { label: '片段 20', audio: './native_chunks/native_019.wav' },
+          { label: '片段 21', audio: './native_chunks/native_020.wav' },
+          { label: '片段 22', audio: './native_chunks/native_021.wav' },
+          { label: '片段 23', audio: './native_chunks/native_022.wav' },
+          { label: '片段 24', audio: './native_chunks/native_023.wav' },
+          { label: '片段 25', audio: './native_chunks/native_024.wav' },
+          { label: '片段 26', audio: './native_chunks/native_025.wav' },
+          { label: '片段 27', audio: './native_chunks/native_026.wav' },
+          { label: '片段 28', audio: './native_chunks/native_027.wav' },
+          { label: '片段 29', audio: './native_chunks/native_028.wav' },
+          { label: '片段 30', audio: './native_chunks/native_029.wav' },
+          { label: '片段 31', audio: './native_chunks/native_030.wav' },
+          { label: '片段 32', audio: './native_chunks/native_031.wav' },
+          { label: '片段 33', audio: './native_chunks/native_032.wav' },
+          { label: '片段 34', audio: './native_chunks/native_033.wav' },
+          { label: '片段 35', audio: './native_chunks/native_034.wav' },
+          { label: '片段 36', audio: './native_chunks/native_035.wav' },
+          { label: '片段 37', audio: './native_chunks/native_036.wav' },
+          { label: '片段 38', audio: './native_chunks/native_037.wav' },
+          { label: '片段 39', audio: './native_chunks/native_038.wav' }
+        ]
+      },
+      {
+        key: 'tts',
+        title: 'TTS 合成語音',
+        badge: 'TTS synthesized',
+        fullTextFile: './text/test.txt',
+        asrTextFile: './text/tts_output_transcript.txt',
+        segments: [
+          { label: '片段 1', audio: './tts_chunks/tts_000.wav' },
+          { label: '片段 2', audio: './tts_chunks/tts_001.wav' },
+          { label: '片段 3', audio: './tts_chunks/tts_002.wav' },
+          { label: '片段 4', audio: './tts_chunks/tts_003.wav' },
+          { label: '片段 5', audio: './tts_chunks/tts_004.wav' },
+          { label: '片段 6', audio: './tts_chunks/tts_005.wav' },
+          { label: '片段 7', audio: './tts_chunks/tts_006.wav' },
+          { label: '片段 8', audio: './tts_chunks/tts_007.wav' },
+          { label: '片段 9', audio: './tts_chunks/tts_008.wav' },
+          { label: '片段 10', audio: './tts_chunks/tts_009.wav' },
+          { label: '片段 11', audio: './tts_chunks/tts_010.wav' },
+          { label: '片段 12', audio: './tts_chunks/tts_011.wav' },
+          { label: '片段 13', audio: './tts_chunks/tts_012.wav' },
+          { label: '片段 14', audio: './tts_chunks/tts_013.wav' },
+          { label: '片段 15', audio: './tts_chunks/tts_014.wav' },
+          { label: '片段 16', audio: './tts_chunks/tts_015.wav' },
+          { label: '片段 17', audio: './tts_chunks/tts_016.wav' },
+          { label: '片段 18', audio: './tts_chunks/tts_017.wav' },
+          { label: '片段 19', audio: './tts_chunks/tts_018.wav' },
+          { label: '片段 20', audio: './tts_chunks/tts_019.wav' }
+        ]
+      },
+      {
+        key: 'self',
+        title: '自己錄音',
+        badge: 'Human rerecording',
+        fullTextFile: './text/test.txt',
+        asrTextFile: './text/jueo6-28lw7_no_speaker.txt',
+        segments: [
+          { label: '片段 1', audio: './self_chunks/self_000.wav' },
+          { label: '片段 2', audio: './self_chunks/self_001.wav' },
+          { label: '片段 3', audio: './self_chunks/self_002.wav' },
+          { label: '片段 4', audio: './self_chunks/self_003.wav' },
+          { label: '片段 5', audio: './self_chunks/self_004.wav' },
+          { label: '片段 6', audio: './self_chunks/self_005.wav' },
+          { label: '片段 7', audio: './self_chunks/self_006.wav' },
+          { label: '片段 8', audio: './self_chunks/self_007.wav' },
+          { label: '片段 9', audio: './self_chunks/self_008.wav' },
+          { label: '片段 10', audio: './self_chunks/self_009.wav' },
+          { label: '片段 11', audio: './self_chunks/self_010.wav' },
+          { label: '片段 12', audio: './self_chunks/self_011.wav' },
+          { label: '片段 13', audio: './self_chunks/self_012.wav' },
+          { label: '片段 14', audio: './self_chunks/self_013.wav' },
+          { label: '片段 15', audio: './self_chunks/self_014.wav' },
+          { label: '片段 16', audio: './self_chunks/self_015.wav' },
+          { label: '片段 17', audio: './self_chunks/self_016.wav' },
+          { label: '片段 18', audio: './self_chunks/self_017.wav' }
+        ]
+      }
+    ];
+
+    async function fetchText(path) {
+      const res = await fetch(path);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.text();
+    }
+
+    function createCard(sample) {
+      const card = document.createElement('section');
+      card.className = 'sample-card';
+      card.innerHTML = `
+        <div class="sample-top">
+          <div class="sample-title">
+            <h2>${sample.title}</h2>
+          </div>
+          <div class="pill">${sample.badge}</div>
+        </div>
+
+        <div class="layout">
+          <div class="panel">
+            <h3>片段清單</h3>
+            <div class="segment-list" id="list-${sample.key}"></div>
+
+            <div class="player-box">
+              <div class="player-head">
+                <strong id="current-${sample.key}">目前片段：--</strong>
+                <span id="status-${sample.key}">等待選擇</span>
+              </div>
+              <div class="controls">
+                <button class="btn btn-primary" id="play-${sample.key}">播放 / 暫停</button>
+                <button class="btn" id="stop-${sample.key}">停止</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>波形與文字</h3>
+            <div class="wave-wrap">
+              <div id="wave-${sample.key}" class="waveform"></div>
+            </div>
+
+            <div class="text-grid">
+              <div class="text-box">
+                <h4>參考文字 / Transcript</h4>
+                <pre id="ref-${sample.key}" class="loading">讀取中...</pre>
+              </div>
+              <div class="text-box">
+                <h4>ASR 辨識結果 / Hypothesis</h4>
+                <pre id="asr-${sample.key}" class="loading">讀取中...</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const listEl = card.querySelector(`#list-${sample.key}`);
+      const currentEl = card.querySelector(`#current-${sample.key}`);
+      const statusEl = card.querySelector(`#status-${sample.key}`);
+      const playBtn = card.querySelector(`#play-${sample.key}`);
+      const stopBtn = card.querySelector(`#stop-${sample.key}`);
+      const refEl = card.querySelector(`#ref-${sample.key}`);
+      const asrEl = card.querySelector(`#asr-${sample.key}`);
+
+      const ws = WaveSurfer.create({
+        container: card.querySelector(`#wave-${sample.key}`),
+        waveColor: '#9ec6c8',
+        progressColor: '#01696f',
+        cursorColor: '#28251d',
+        height: 78,
+        barWidth: 2,
+        barGap: 1,
+        barRadius: 999,
+        normalize: true
+      });
+
+      let activeIndex = 0;
+
+      function loadSegment(index) {
+        activeIndex = index;
+        [...listEl.querySelectorAll('.segment-btn')].forEach((b, i) => b.classList.toggle('active', i === index));
+        const seg = sample.segments[index];
+        currentEl.textContent = `目前片段：${seg.label}`;
+        statusEl.textContent = '載入中...';
+        ws.load(seg.audio);
+        ws.once('ready', () => {
+          statusEl.textContent = seg.audio.split('/').pop();
+        });
+      }
+
+      sample.segments.forEach((seg, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'segment-btn' + (index === 0 ? ' active' : '');
+        btn.type = 'button';
+        btn.innerHTML = `<span>${seg.label}</span><small>${seg.audio.split('/').pop()}</small>`;
+        btn.addEventListener('click', () => loadSegment(index));
+        listEl.appendChild(btn);
+      });
+
+      playBtn.addEventListener('click', () => ws.playPause());
+      stopBtn.addEventListener('click', () => {
+        ws.stop();
+        statusEl.textContent = sample.segments[activeIndex].audio.split('/').pop();
+      });
+
+      fetchText(sample.fullTextFile).then(text => {
+        refEl.textContent = text;
+        refEl.classList.remove('loading');
+      }).catch(() => {
+        refEl.textContent = `讀取失敗：${sample.fullTextFile}`;
+        refEl.classList.add('error');
+      });
+
+      fetchText(sample.asrTextFile).then(text => {
+        asrEl.textContent = text;
+        asrEl.classList.remove('loading');
+      }).catch(() => {
+        asrEl.textContent = `讀取失敗：${sample.asrTextFile}`;
+        asrEl.classList.add('error');
+      });
+
+      loadSegment(0);
+      return card;
+    }
+
+    const root = document.getElementById('samples');
+    samples.forEach(sample => root.appendChild(createCard(sample)));
+  </script>
+</body>
+</html>
